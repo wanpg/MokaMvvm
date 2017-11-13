@@ -7,17 +7,17 @@ import android.view.Window
 
 class MainActivity : AppCompatActivity() {
 
-    internal lateinit var testViewBind: TestViewBind
+    internal lateinit var testViewController: TestViewController
     internal lateinit var testViewModel: TestViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        testViewBind = TestViewBind(findViewById<View>(Window.ID_ANDROID_CONTENT))
-        testViewModel = TestViewModel()
-        testViewBind.viewModel = testViewModel
+        testViewController = TestViewController(this, findViewById<View>(Window.ID_ANDROID_CONTENT))
+        testViewModel = TestViewModel(this)
+        testViewController.setViewModel(testViewModel)
 
-        lifecycle.addObserver(testViewBind)
+        lifecycle.addObserver(testViewController)
         lifecycle.addObserver(testViewModel)
     }
 }

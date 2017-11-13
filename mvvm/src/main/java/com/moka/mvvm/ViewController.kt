@@ -1,5 +1,6 @@
 package com.moka.mvvm
 
+import android.content.Context
 import android.support.annotation.IdRes
 import android.view.View
 import android.view.View.NO_ID
@@ -7,27 +8,29 @@ import android.view.View.NO_ID
 /**
  * Created by wangjinpeng on 2017/11/9.
  */
-abstract class ViewBind : VVMBase {
+abstract class ViewController : VVMBase {
 
     private val container: View
 
-    private val binder: Binder
+    protected val viewBinder: ViewBinder
 
-    constructor(container: View) {
+    constructor(context: Context, container: View) : super(context) {
         this.container = container
         @Suppress("LeakingThis")
-        binder = Binder.create(this)
+        viewBinder = ViewBinder.create(this)
+    }
+
+    fun setViewModel(viewModel: ViewModel) {
+        viewBinder.setViewModel(viewModel)
     }
 
     private val viewMap = HashMap<Int, View>()
 
-    lateinit var viewModel: ViewModel
-
     override fun onCreate() {
         super.onCreate()
-        binder.initView(container)
+        viewBinder.initView(container)
         bindView(container)
-        binder.dataBind()
+        viewBinder.dataBind()
     }
 
     override fun onDestroy() {
@@ -35,7 +38,9 @@ abstract class ViewBind : VVMBase {
         viewMap.clear()
     }
 
-    abstract fun bindView(view: View)
+    open fun bindView(view: View) {
+        // do nothing
+    }
 
     fun <T : View> findViewById(@IdRes id: Int): T? {
         return if (id == NO_ID) {

@@ -4,14 +4,15 @@ import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.LifecycleOwner
 import android.arch.lifecycle.OnLifecycleEvent
+import android.content.Context
 import android.os.Handler
 
 /**
  * Created by wangjinpeng on 2017/11/9.
  */
-open class VVMBase : LifecycleObserver {
+open class VVMBase(val context: Context) : LifecycleObserver {
 
-    val handler = Handler()
+    private val handler = Handler()
 
     @OnLifecycleEvent(Lifecycle.Event.ON_ANY)
     private fun onAny(source: LifecycleOwner, event: Lifecycle.Event) {

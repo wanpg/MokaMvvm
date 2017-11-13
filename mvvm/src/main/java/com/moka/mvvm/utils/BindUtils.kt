@@ -1,10 +1,7 @@
 package com.moka.mvvm.utils
 
 import android.widget.TextView
-import com.moka.mvvm.Observable
-import com.moka.mvvm.Observer
-import com.moka.mvvm.ViewBinder
-import com.moka.mvvm.ViewModel
+import com.moka.mvvm.*
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
@@ -33,7 +30,7 @@ object BindUtils {
         }
     }
 
-    fun <T> bind(model: ViewModel, modelProperty: String, binder: ViewBinder<T>) {
+    fun <T> bind(model: ViewModel, modelProperty: String, callBack: ViewBinder.CallBack<T>) {
         val split = modelProperty.split(".")
         val kProperty1 = model::class.memberProperties.firstOrNull { it.name == split[0] }
         val access = kProperty1?.isAccessible
@@ -41,14 +38,20 @@ object BindUtils {
         var info = kProperty1?.getter?.call(model)
         kProperty1?.isAccessible = access ?: false
         if (info is Observable<*>) {
-            binder.bind(info.get() as T)
+            callBack.bind(info.get() as T)
             info.addObserver { t ->
                 model.post {
-                    binder.bind(t as T)
+                    callBack.bind(t as T)
                 }
             }
         } else if (info is CharSequence) {
-            binder.bind(info as T)
+            callBack.bind(info as T)
+        }
+    }
+
+    open fun <T> bind(observable: Observable<T>, observer: (t: T) -> Unit) {
+        observable.addObserver { t ->
+            observer(t)
         }
     }
 }
