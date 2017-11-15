@@ -1,7 +1,6 @@
 package com.moka.mvvm
 
 import android.view.View
-import org.jetbrains.annotations.Nullable
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.jvm.isAccessible
@@ -19,8 +18,6 @@ open abstract class ViewBinder {
     abstract fun initView(container: View)
 
     abstract fun dataBind()
-
-    abstract fun getViewController(): ViewController
 
     abstract fun setViewModel(viewModel: ViewModel)
 

@@ -11,4 +11,8 @@ open class ViewModel(context: Context) : VVMBase(context) {
         super.onCreate()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        MVVM.clear(this)
+    }
 }

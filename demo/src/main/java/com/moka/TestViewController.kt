@@ -18,7 +18,7 @@ import com.moka.mvvm.ViewProperty
 open class TestViewController(context: Context, container: View) : ViewController(context, container) {
 
     @ViewId(R.id.hello_world)
-    @Binder(property = ViewProperty.Button.text, observe = TestViewProtocol.helloWordText)
+    @Binder(property = ViewProperty.TextView.text, observe = TestViewProtocol.helloWordText)
     open lateinit var infoText: TextView
 
     @ViewId(R.id.button1)
