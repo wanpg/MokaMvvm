@@ -2,8 +2,11 @@ package com.moka.compile;
 
 import com.moka.annotations.Binder;
 import com.moka.annotations.Binders;
+import com.moka.annotations.Command;
+import com.moka.annotations.Commands;
 import com.moka.annotations.Mvvm;
 import com.moka.annotations.ObserveBy;
+import com.moka.mvvm.ViewProperty;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -18,46 +21,68 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
 import static com.moka.compile.MvvmProcessor.classObservable;
+import static com.moka.compile.MvvmProcessor.classView;
+import static com.moka.compile.ReflectUtils.getReturnType;
 
 /**
- * Created by wangjinpeng on 2017/11/14.
+ * dataBind 方法的生成
+ * <p>
+ * 1、 绑定ViewModel中的field 与 protocol方法
+ * 2、 绑定ViewController中的field 与protocol方法
+ * 3、 绑定ViewController中的field 执行command 调用protocol方法
  */
 
 public class DataBindMethod extends BaseMethod {
+    TypeElement viewProtocolElement = null;
+    TypeElement viewModelElement = null;
+    List<Element> allStaticField = new ArrayList<>();
+    List<Element> allMethod = new ArrayList<>();
 
     public DataBindMethod(ProcessingEnvironment processingEnv, TypeElement typeElement) {
         super(processingEnv, typeElement);
-    }
-
-    @Override
-    public MethodSpec build() {
         Mvvm mvvmAnnotation = typeElement.getAnnotation(Mvvm.class);
-        TypeElement viewModelElement = null;
+
         try {
             ClassName.get(mvvmAnnotation.viewModel());
         } catch (MirroredTypeException e) {
             viewModelElement = (TypeElement) processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
 
-        TypeElement viewProtocolElement = null;
         try {
             ClassName.get(mvvmAnnotation.protocol());
         } catch (MirroredTypeException e) {
             viewProtocolElement = (TypeElement) processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
 
-        List<? extends Element> modelElements = getProtocolElementInModel(viewModelElement, viewProtocolElement);
+//        List<? extends Element> modelElements = getProtocolElementInModel(viewModelElement, viewProtocolElement);
 
+        List<? extends Element> allProtocolElements = processingEnv.getElementUtils().getAllMembers(viewProtocolElement);
+
+        for (Element element : allProtocolElements) {
+            if (!ReflectUtils.isElementClassBase(element)) {
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "element : " + element.toString());
+                processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "element kind: " + element.getKind());
+                if (element.getKind() == ElementKind.METHOD) {
+                    allMethod.add(element);
+                } else if (element.getKind() == ElementKind.FIELD) {
+                    allStaticField.add(element);
+                }
+            }
+        }
+    }
+
+    @Override
+    public MethodSpec build() {
         MethodSpec.Builder dataBindBuilder = MethodSpec.methodBuilder("dataBind")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC);
+
         // 先处理ViewModel的绑定
         List<Element> allFieldWithObserveBy = ReflectUtils.getAllFieldWithAnnotation(processingEnv, viewModelElement, ObserveBy.class);
         for (Element elementObserveBy : allFieldWithObserveBy) {
@@ -76,10 +101,10 @@ public class DataBindMethod extends BaseMethod {
                     .addCode("    @Override\n")
                     .addCode("    public $T invoke($T data) {\n", MvvmProcessor.classKUnit, typeName);
             for (String methodString : value) {
-                for (Element element : modelElements) {
+                for (Element element : allMethod) {
                     String simpleName = element.getSimpleName().toString();
                     System.out.println("输出的element是" + simpleName);
-                    if (simpleName.toUpperCase().contains(methodString.toUpperCase())) {
+                    if (simpleName.equals(methodString)) {
                         dataBindBuilder.addCode("        viewModel.$N();\n", simpleName);
                     }
                 }
@@ -89,12 +114,13 @@ public class DataBindMethod extends BaseMethod {
                     .addCode("});\n");
         }
 
+        // 此处处理ViewController Bind
         List<Element> allFieldWithBinder = new ArrayList<>();
         allFieldWithBinder.addAll(ReflectUtils.getAllFieldWithAnnotation(processingEnv, typeElement, Binder.class));
         allFieldWithBinder.addAll(ReflectUtils.getAllFieldWithAnnotation(processingEnv, typeElement, Binders.class));
 
         processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "classObservable to string " + classObservable.toString());
-        for (Element elementProtocol : modelElements) {
+        for (Element elementProtocol : allMethod) {
             String simpleName = elementProtocol.getSimpleName().toString();
             TypeMirror protocolTypeMirror = elementProtocol.asType();
             processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "protocolTypeMirror : " + protocolTypeMirror);
@@ -103,7 +129,6 @@ public class DataBindMethod extends BaseMethod {
             String protocolMethodString = protocolTypeMirror.toString();
 
             Pattern patternParams = Pattern.compile("\\(.*\\)");
-
 
             Matcher matcherParams = patternParams.matcher(protocolMethodString);
             if (matcherParams.find()) {
@@ -120,7 +145,7 @@ public class DataBindMethod extends BaseMethod {
                     for (Element binderElement : allFieldWithBinder) {
                         Binder binder = binderElement.getAnnotation(Binder.class);
                         if (binder != null) {
-                            if (simpleName.toUpperCase().contains(binder.observe().toUpperCase())) {
+                            if (simpleName.equals(binder.observe())) {
                                 binderMethod.add(binderElement.getSimpleName() + ".set" + binder.property().substring(0, 1).toUpperCase() + binder.property().substring(1) + "(%s);\n");
                             }
                         } else {
@@ -128,7 +153,7 @@ public class DataBindMethod extends BaseMethod {
                             if (binders != null) {
                                 Binder[] values = binders.value();
                                 for (Binder binderValue : values) {
-                                    if (simpleName.toUpperCase().contains(binderValue.observe().toUpperCase())) {
+                                    if (simpleName.equals(binderValue.observe())) {
                                         binderMethod.add(binderElement.getSimpleName() + ".set" + binderValue.property().substring(0, 1).toUpperCase() + binderValue.property().substring(1) + "(%s);\n");
                                     }
                                 }
@@ -166,93 +191,44 @@ public class DataBindMethod extends BaseMethod {
                 }
             }
         }
+
+        // 此处处理ViewController 的 Command的调用
+        bindCommand(dataBindBuilder);
+
         return dataBindBuilder.build();
     }
 
-    private List<Element> getProtocolElementInModel(TypeElement modelElement, TypeElement protocolElement) {
-        List<? extends Element> modelElements = processingEnv.getElementUtils().getAllMembers(modelElement);
-        List<? extends Element> protocolElements = processingEnv.getElementUtils().getAllMembers(protocolElement);
-        List<Element> result = new ArrayList<>();
-        for (Element eInModel : modelElements) {
-            if (!isElementClassBase(eInModel) && eInModel.getKind() == ElementKind.METHOD) {
-                Name eInModelSimpleName = eInModel.getSimpleName();
-                for (Element eInProtocol : protocolElements) {
-                    if (eInProtocol.getKind() == ElementKind.METHOD
-                            && eInModelSimpleName.equals(eInProtocol.getSimpleName())) {
-                        result.add(eInModel);
-                        break;
-                    }
+    private void bindCommand(MethodSpec.Builder builder) {
+        List<Element> commandElements = ReflectUtils.getAllFieldWithAnnotation(processingEnv, typeElement, Command.class);
+        for (Element element : commandElements) {
+            Command command = element.getAnnotation(Command.class);
+            createOneCommandCode(builder, command, element);
+        }
+        List<Element> commandsElements = ReflectUtils.getAllFieldWithAnnotation(processingEnv, typeElement, Commands.class);
+        for (Element element : commandsElements) {
+            Commands commands = element.getAnnotation(Commands.class);
+            if (commands != null) {
+                Command[] value = commands.value();
+                for (Command command : value) {
+                    createOneCommandCode(builder, command, element);
                 }
             }
         }
-        return result;
     }
 
-    private boolean isElementClassBase(Element element) {
-        String elementName = element.getSimpleName().toString();
-        if (elementName.equals("getClass")
-                || elementName.equals("hashCode")
-                || elementName.equals("equals")
-                || elementName.equals("toString")
-                || elementName.equals("notify")
-                || elementName.equals("notifyAll")
-                || elementName.equals("wait")) {
-            return true;
+    private void createOneCommandCode(MethodSpec.Builder builder, Command command, Element element) {
+        if (command == null) {
+            return;
         }
-        return false;
-    }
-
-    Pattern patternReturnT = Pattern.compile("<.*>");
-
-    private TypeName getReturnType(String returnTypeString) {
-        Matcher matcher = patternReturnT.matcher(returnTypeString);
-        if (matcher.find()) {
-            String group = matcher.group();
-
-            String substring = group.substring(1, group.length() - 1);
-            String[] tStrings = getNextReturn(substring);
-            TypeName[] tTypeNames = new TypeName[tStrings.length];
-            for (int i = 0; i < tStrings.length; i++) {
-                tTypeNames[i] = getReturnType(tStrings[i]);
-            }
-
-            String mainString = returnTypeString.replace(group, "");
-            if (tTypeNames.length > 0) {
-                return ParameterizedTypeName.get(ClassName.bestGuess(mainString), tTypeNames);
-            } else {
-                return ClassName.bestGuess(mainString);
-            }
-        } else {
-            return ClassName.bestGuess(returnTypeString);
+        String property = command.property();
+        if (ViewProperty.View.onClick.equals(property)) {
+            String execute = command.execute();
+            builder.addCode("viewController.$N.setOnClickListener(new $T.OnClickListener() {\n", element.getSimpleName(), classView)
+                    .addCode("    @Override\n")
+                    .addCode("    public void onClick($T v) {\n", classView)
+                    .addCode("        executeCommand($S, v);\n", execute)
+                    .addCode("    }\n")
+                    .addCode("});\n");
         }
-    }
-
-    private static String[] getNextReturn(String returnTypeString) {
-        List<String> strings = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        int level = 0;
-        for (int i = 0; i < returnTypeString.length(); i++) {
-            String indexStr = returnTypeString.substring(i, i + 1);
-            if (",".equals(indexStr)) {
-                if (level == 0) {
-                    strings.add(sb.toString());
-                    sb = new StringBuilder();
-                    continue;
-                }
-            }
-
-            sb.append(indexStr);
-            if ("<".equals(indexStr)) {
-                level++;
-            } else if (">".equals(indexStr)) {
-                level--;
-            }
-        }
-        if (sb.length() > 0) {
-            strings.add(sb.toString());
-        }
-        String[] result = new String[strings.size()];
-        strings.toArray(result);
-        return result;
     }
 }

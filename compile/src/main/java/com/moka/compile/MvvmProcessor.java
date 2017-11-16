@@ -1,7 +1,6 @@
 package com.moka.compile;
 
 import com.moka.annotations.Mvvm;
-import com.moka.annotations.ObserveBy;
 import com.moka.annotations.ViewId;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -10,13 +9,10 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
@@ -38,6 +34,7 @@ public class MvvmProcessor extends AbstractProcessor {
     public static final ClassName classKFunction1 = ClassName.bestGuess("kotlin.jvm.functions.Function1");
     public static final ClassName classKUnit = ClassName.bestGuess("kotlin.Unit");
     public static final ClassName classObservable = ClassName.bestGuess("com.moka.mvvm.Observable");
+    public static final ClassName classViewOnClick = ClassName.bestGuess("android.view.View$OnClickListener");
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -113,6 +110,15 @@ public class MvvmProcessor extends AbstractProcessor {
                 .build();
         viewBinderTypeBuilder.addMethod(setViewModel);
 
+        // 4. 创建 override getViewModel 方法
+        MethodSpec getViewModel = MethodSpec.methodBuilder("getViewModel")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(viewModelType)
+                .addStatement("return $N", "viewModel")
+                .build();
+        viewBinderTypeBuilder.addMethod(getViewModel);
+
         // 5. 创建initView方法
         MethodSpec.Builder initViewBuilder = MethodSpec.methodBuilder("initView")
                 .addAnnotation(Override.class)
@@ -132,13 +138,7 @@ public class MvvmProcessor extends AbstractProcessor {
         viewBinderTypeBuilder.addMethod(new DataBindMethod(processingEnv, element).build());
 
         // 7. 创建 executeCommand 方法
-        MethodSpec.Builder executeCommandBuilder = MethodSpec.methodBuilder("executeCommand")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(String.class, "command")
-                .addParameter(Object[].class, "args");
-
-        viewBinderTypeBuilder.addMethod(executeCommandBuilder.build());
+        viewBinderTypeBuilder.addMethod(new ExecuteCommandMethod(processingEnv, element).build());
 
         JavaFile javaFile = JavaFile.builder(packageName, viewBinderTypeBuilder.build()).build();
         javaFile.writeTo(processingEnv.getFiler());

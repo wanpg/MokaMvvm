@@ -8,16 +8,8 @@ import java.lang.annotation.Target;
 /**
  * Created by wangjinpeng on 2017/11/13.
  */
-@Target({ElementType.FIELD, ElementType.METHOD})
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Command {
-
-    /**
-     * view的属性， 比如 View的onClick 等
-     *
-     * @return
-     */
-    String property() default "";
-
-    String execute();
+public @interface Binders {
+    Binder[] value();
 }

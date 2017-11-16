@@ -30,8 +30,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation project(':mvvm')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    implementation project(':annotations')
     kapt project(':compile')
+    implementation project(':base')
 }
 repositories {
     mavenCentral()

@@ -15,6 +15,7 @@
 // * Created by wangjinpeng on 2017/11/10.
 // */
 //
+//
 //public class TestViewBinderImpl extends ViewBinder {
 //
 //    private TestViewController viewController;
@@ -79,12 +80,12 @@
 //            }
 //        });
 //
-////        viewController.getButton2().setOnClickListener(new View.OnClickListener() {
-////            @Override
-////            public void onClick(View v) {
-////                onButton2Click();
-////            }
-////        });
+//        viewController.getButton2().setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                onButton2Click();
+//            }
+//        });
 //    }
 //
 //    @Override

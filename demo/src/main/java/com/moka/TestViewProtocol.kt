@@ -11,17 +11,17 @@ import com.moka.mvvm.Observable
 interface TestViewProtocol : ViewProtocol {
 
     companion object {
-        const val helloWordText = "helloWordText"
-        const val buttonText = "buttonText"
-        const val buttonEnable = "buttonEnable"
+        const val getHelloWordText = "getHelloWordText"
+        const val getButtonText = "getButtonText"
+        const val getButtonEnable = "getButtonEnable"
         const val onButton2Click = "onButton2Click"
     }
 
-    val helloWordText: Observable<String>
+    fun getHelloWordText(): Observable<String>
 
-    val buttonText: Observable<String>
+    fun getButtonText(): Observable<String>
 
-    val buttonEnable: Observable<Boolean>
+    fun getButtonEnable(): Observable<Boolean>
 
     fun onButton2Click(view: View?)
 }

@@ -1,10 +1,16 @@
 package com.moka.compile;
 
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -65,4 +71,84 @@ public class ReflectUtils {
 //                    + tClass.getCanonicalName());
 //        }
 //    }
+
+    public static boolean isElementClassBase(Element element) {
+        String elementName = element.getSimpleName().toString();
+        if (elementName.equals("getClass")
+                || elementName.equals("hashCode")
+                || elementName.equals("equals")
+                || elementName.equals("toString")
+                || elementName.equals("notify")
+                || elementName.equals("notifyAll")
+                || elementName.equals("wait")
+                || elementName.equals("Companion")
+                ) {
+            return true;
+        }
+        return false;
+    }
+
+
+    static Pattern patternReturnT = Pattern.compile("<.*>");
+
+    public static TypeName getReturnType(String returnTypeString) {
+        Matcher matcher = patternReturnT.matcher(returnTypeString);
+        if (matcher.find()) {
+            String group = matcher.group();
+
+            String substring = group.substring(1, group.length() - 1);
+            String[] tStrings = getNextReturn(substring);
+            TypeName[] tTypeNames = new TypeName[tStrings.length];
+            for (int i = 0; i < tStrings.length; i++) {
+                tTypeNames[i] = getReturnType(tStrings[i]);
+            }
+
+            String mainString = returnTypeString.replace(group, "");
+            if (tTypeNames.length > 0) {
+                return ParameterizedTypeName.get(ClassName.bestGuess(mainString), tTypeNames);
+            } else {
+                return ClassName.bestGuess(mainString);
+            }
+        } else {
+            return ClassName.bestGuess(returnTypeString);
+        }
+    }
+
+    public static String[] getNextReturn(String returnTypeString) {
+        List<String> strings = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        int level = 0;
+        for (int i = 0; i < returnTypeString.length(); i++) {
+            String indexStr = returnTypeString.substring(i, i + 1);
+            if (",".equals(indexStr)) {
+                if (level == 0) {
+                    strings.add(sb.toString());
+                    sb = new StringBuilder();
+                    continue;
+                }
+            }
+
+            sb.append(indexStr);
+            if ("<".equals(indexStr)) {
+                level++;
+            } else if (">".equals(indexStr)) {
+                level--;
+            }
+        }
+        if (sb.length() > 0) {
+            strings.add(sb.toString());
+        }
+        String[] result = new String[strings.size()];
+        strings.toArray(result);
+        return result;
+    }
+
+    public static List<TypeName> getParams(String paramString) {
+        String[] nextReturn = getNextReturn(paramString);
+        List<TypeName> typeNames = new ArrayList<>();
+        for (String string : nextReturn) {
+            typeNames.add(getReturnType(string));
+        }
+        return typeNames;
+    }
 }

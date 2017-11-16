@@ -2,6 +2,7 @@ package com.moka.mvvm
 
 import android.view.View
 import java.lang.reflect.InvocationTargetException
+import kotlin.reflect.full.declaredMemberFunctions
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.jvm.isAccessible
 
@@ -11,7 +12,7 @@ import kotlin.reflect.jvm.isAccessible
 
 open abstract class ViewBinder {
 
-    open interface CallBack<T> {
+    open interface CallBack<in T> {
         fun bind(t: T?)
     }
 
@@ -21,6 +22,8 @@ open abstract class ViewBinder {
 
     abstract fun setViewModel(viewModel: ViewModel)
 
+    abstract fun getViewModel(): ViewModel
+
     open fun executeCommand(command: String, vararg args: Any) {
         val kFunction = this::class.memberFunctions.firstOrNull { it.name == command }
         val accessible = kFunction?.isAccessible
@@ -29,6 +32,26 @@ open abstract class ViewBinder {
         argList.add(this)
         argList.addAll(args)
         kFunction?.call(*argList.toArray())
+        kFunction?.isAccessible = accessible ?: false
+    }
+
+    open fun <T> bind(observe: String, callBack: CallBack<T>) {
+        val viewModel = getViewModel()
+        val kFunction = viewModel::class.declaredMemberFunctions.firstOrNull { it.name == observe }
+        val accessible = kFunction?.isAccessible
+        kFunction?.isAccessible = true
+        val call = kFunction?.call(viewModel)
+        if (call == null) {
+            callBack.bind(null)
+        } else {
+            if (call is Observable<*>) {
+                call.addObserver {
+                    callBack.bind(it as T)
+                }
+            } else {
+                callBack.bind(call as T)
+            }
+        }
         kFunction?.isAccessible = accessible ?: false
     }
 

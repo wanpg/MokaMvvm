@@ -2,10 +2,10 @@ apply plugin: 'java-library'
 apply plugin: 'kotlin-kapt'
 
 dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation project(':annotations')
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.auto.service:auto-service:1.0-rc3'
     implementation 'com.squareup:javapoet:1.9.0'
+    implementation project(':base')
 }
 
 sourceCompatibility = "1.8"

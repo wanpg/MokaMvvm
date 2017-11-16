@@ -1,1 +1,1 @@
-include ':demo', ':mvvm', ':compile', ':annotations'
+include ':demo', ':mvvm', ':compile', ':base'

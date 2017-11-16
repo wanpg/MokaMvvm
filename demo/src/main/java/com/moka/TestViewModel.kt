@@ -15,12 +15,13 @@ import com.moka.mvvm.ViewModel
  */
 
 class TestViewModel(context: Context) : ViewModel(context), TestViewProtocol {
+
     private val handler = Handler()
 
-    @ObserveBy(TestViewProtocol.helloWordText)
+    @ObserveBy(TestViewProtocol.getHelloWordText)
     val info = Observable("hello world !!!!!!")
 
-    @ObserveBy(TestViewProtocol.buttonEnable, TestViewProtocol.buttonText)
+    @ObserveBy(TestViewProtocol.getButtonEnable, TestViewProtocol.getButtonText)
     val buttonInfo = Observable<ButtonInfo>()
 
     override fun onCreate() {
@@ -31,33 +32,30 @@ class TestViewModel(context: Context) : ViewModel(context), TestViewProtocol {
         }, 2000)
     }
 
-    override val buttonText: Observable<String>
-        get() {
-            val buttonInfo = this.buttonInfo.get()
-            return MVVM
-                    .wrap<String>(this, buttonInfo?.text)
-                    .describe(ButtonInfo::class.java, "text")
-                    .create()
-        }
-
-    override val buttonEnable: Observable<Boolean>
-        get() {
-            val buttonInfo = this.buttonInfo.get()
-            return MVVM.wrap<Boolean>(this, buttonInfo?.isEnable)
-                    .describe(ButtonInfo::class.java, "enable")
-                    .create()
-        }
-
-    override val helloWordText: Observable<String>
-        get() {
-            return info
-        }
-
     override fun onButton2Click(view: View?) {
         Toast.makeText(context, "点击了button2", Toast.LENGTH_SHORT).show()
     }
 
     fun getHelloWortText(view: View): Observable<String>? {
         return null
+    }
+
+    override fun getHelloWordText(): Observable<String> {
+        return info
+    }
+
+    override fun getButtonText(): Observable<String> {
+        val buttonInfo = this.buttonInfo.get()
+        return MVVM
+                .wrap<String>(this, buttonInfo?.text)
+                .describe(ButtonInfo::class.java, "text")
+                .create()
+    }
+
+    override fun getButtonEnable(): Observable<Boolean> {
+        val buttonInfo = this.buttonInfo.get()
+        return MVVM.wrap<Boolean>(this, buttonInfo?.isEnable)
+                .describe(ButtonInfo::class.java, "enable")
+                .create()
     }
 }
