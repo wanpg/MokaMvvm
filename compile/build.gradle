@@ -1,6 +1,9 @@
 apply plugin: 'java-library'
 apply plugin: 'kotlin-kapt'
 
+apply plugin: 'com.github.dcendents.android-maven' // ADD THIS
+group = 'com.github.wanpg.MokaMvvm'
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.auto.service:auto-service:1.0-rc3'

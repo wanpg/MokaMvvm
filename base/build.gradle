@@ -1,5 +1,8 @@
 apply plugin: 'java-library'
 
+apply plugin: 'com.github.dcendents.android-maven' // ADD THIS
+group = 'com.github.wanpg.MokaMvvm'
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:support-annotations:27.0.0'
