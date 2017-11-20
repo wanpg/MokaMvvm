@@ -29,14 +29,15 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    //    compile 'com.github.wanpg.MokaMvvm:mvvm:0.0.1-snapshot'
-    //    compile 'com.github.wanpg.MokaMvvm:base:0.0.1-snapshot'
-    //    kapt 'com.github.wanpg.MokaMvvm:compile:0.0.1-snapshot'
-    //    kapt 'com.google.auto.service:auto-service:1.0-rc3'
-    //    kapt 'com.squareup:javapoet:1.9.0'
-    implementation project(':base')
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation 'com.github.wanpg.MokaMvvm:mvvm:0.0.1-snapshot'
+    implementation 'com.github.wanpg.MokaMvvm:base:0.0.1-snapshot'
+    kapt 'com.github.wanpg.MokaMvvm:compile:0.0.1-snapshot'
+    kapt 'com.google.auto.service:auto-service:1.0-rc3'
+    kapt 'com.squareup:javapoet:1.9.0'
+/*    implementation project(':base')
     implementation project(':mvvm')
-    kapt project(':compile')
+    kapt project(':compile')*/
 }
 repositories {
     mavenCentral()

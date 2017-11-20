@@ -23,9 +23,15 @@ build.gradle中加入下面的引用，version请查看[Release](https://github.
 
 ```groovy
     dependencies {
-	    implementation 'com.github.wanpg.MokaMvvm:mvvm:version'
-    	implementation 'com.github.wanpg.MokaMvvm:base:version'
+        implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+        implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+        implementation 'com.github.wanpg.MokaMvvm:mvvm:version'
+        implementation 'com.github.wanpg.MokaMvvm:base:version'
         kapt 'com.github.wanpg.MokaMvvm:compile:version'
+
+        kapt 'com.google.auto.service:auto-service:1.0-rc3'
+        kapt 'com.squareup:javapoet:1.9.0'
     }
 ```
 
