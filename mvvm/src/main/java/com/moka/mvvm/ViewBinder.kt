@@ -11,11 +11,7 @@ import kotlin.reflect.jvm.isAccessible
  */
 
 open abstract class ViewBinder {
-
-    open interface CallBack<in T> {
-        fun bind(t: T?)
-    }
-
+    
     abstract fun initView(container: View)
 
     abstract fun dataBind()
@@ -35,21 +31,21 @@ open abstract class ViewBinder {
         kFunction?.isAccessible = accessible ?: false
     }
 
-    open fun <T> bind(observe: String, callBack: CallBack<T>) {
+    open fun <T> bind(observe: String, callBack: (t: T?) -> Unit) {
         val viewModel = getViewModel()
         val kFunction = viewModel::class.declaredMemberFunctions.firstOrNull { it.name == observe }
         val accessible = kFunction?.isAccessible
         kFunction?.isAccessible = true
         val call = kFunction?.call(viewModel)
         if (call == null) {
-            callBack.bind(null)
+            callBack(null)
         } else {
             if (call is Observable<*>) {
                 call.addObserver {
-                    callBack.bind(it as T)
+                    callBack(it as T)
                 }
             } else {
-                callBack.bind(call as T)
+                callBack(call as T)
             }
         }
         kFunction?.isAccessible = accessible ?: false

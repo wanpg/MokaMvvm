@@ -5,7 +5,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import com.moka.annotations.*
-import com.moka.mvvm.ViewBinder
 import com.moka.mvvm.ViewController
 import com.moka.mvvm.ViewProperty
 
@@ -30,10 +29,8 @@ open class TestViewController(context: Context, container: View) : ViewControlle
 
     override fun bindView(view: View) {
         super.bindView(view)
-        viewBinder.bind(TestViewProtocol.getHelloWordText, object : ViewBinder.CallBack<String> {
-            override fun bind(t: String?) {
-                infoText.text = t ?: ""
-            }
+        viewBinder.bind<String>(TestViewProtocol.getHelloWordText, { string ->
+            infoText.text = string ?: ""
         })
     }
 }
