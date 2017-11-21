@@ -58,4 +58,8 @@ class TestViewModel(context: Context) : ViewModel(context), TestViewProtocol {
                 .describe(ButtonInfo::class.java, "enable")
                 .create()
     }
+
+    override fun requestData(boolean: Boolean) {
+
+    }
 }

@@ -74,6 +74,7 @@ public class ExecuteCommandMethod extends BaseMethod {
         // 此处执行 返回值是void的方法
 
         boolean hasCommand = false;
+        boolean isFirst = true;
         for (Element element : allMethod) {
             String simpleName = element.getSimpleName().toString();
             TypeMirror protocolTypeMirror = element.asType();
@@ -92,7 +93,12 @@ public class ExecuteCommandMethod extends BaseMethod {
                         String staticFieldString = staticField.getSimpleName().toString();
                         if (simpleName.equals(staticFieldString)) {
                             hasCommand = true;
-                            builder.addCode("if ($T.$N.equals(command)) {\n", viewProtocolElement, staticFieldString);
+                            if(isFirst){
+                                builder.addCode("if ($T.$N.equals(command)) {\n", viewProtocolElement, staticFieldString);
+                            }else{
+                                builder.addCode("} else if ($T.$N.equals(command)) {\n", viewProtocolElement, staticFieldString);
+                            }
+                            isFirst = false;
                             builder.addCode("    viewModel.$N(", simpleName);
 
                             List<TypeName> params = ReflectUtils.getParams(paramString.replace("(", "").replace(")", ""));

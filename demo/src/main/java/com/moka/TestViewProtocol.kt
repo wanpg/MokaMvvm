@@ -15,6 +15,7 @@ interface TestViewProtocol : ViewProtocol {
         const val getButtonText = "getButtonText"
         const val getButtonEnable = "getButtonEnable"
         const val onButton2Click = "onButton2Click"
+        const val requestData = "onButton2Click"
     }
 
     fun getHelloWordText(): Observable<String>
@@ -24,4 +25,6 @@ interface TestViewProtocol : ViewProtocol {
     fun getButtonEnable(): Observable<Boolean>
 
     fun onButton2Click(view: View?)
+
+    fun requestData(boolean: Boolean)
 }

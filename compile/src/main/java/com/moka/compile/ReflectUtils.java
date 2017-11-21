@@ -107,10 +107,10 @@ public class ReflectUtils {
             if (tTypeNames.length > 0) {
                 return ParameterizedTypeName.get(ClassName.bestGuess(mainString), tTypeNames);
             } else {
-                return ClassName.bestGuess(mainString);
+                return getTypeByName(mainString);
             }
         } else {
-            return ClassName.bestGuess(returnTypeString);
+            return getTypeByName(returnTypeString);
         }
     }
 
@@ -150,5 +150,26 @@ public class ReflectUtils {
             typeNames.add(getReturnType(string));
         }
         return typeNames;
+    }
+
+    private static TypeName getTypeByName(String typeName) {
+        if ("boolean".equals(typeName)) {
+            return TypeName.BOOLEAN;
+        } else if ("byte".equals(typeName)) {
+            return TypeName.BYTE;
+        } else if ("short".equals(typeName)) {
+            return TypeName.SHORT;
+        } else if ("int".equals(typeName)) {
+            return TypeName.INT;
+        } else if ("long".equals(typeName)) {
+            return TypeName.LONG;
+        } else if ("char".equals(typeName)) {
+            return TypeName.CHAR;
+        } else if ("float".equals(typeName)) {
+            return TypeName.FLOAT;
+        } else if ("double".equals(typeName)) {
+            return TypeName.DOUBLE;
+        }
+        return ClassName.bestGuess(typeName);
     }
 }
