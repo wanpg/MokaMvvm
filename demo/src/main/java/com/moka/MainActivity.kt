@@ -19,5 +19,6 @@ class MainActivity : AppCompatActivity() {
 
         lifecycle.addObserver(testViewController)
         lifecycle.addObserver(testViewModel)
+
     }
 }

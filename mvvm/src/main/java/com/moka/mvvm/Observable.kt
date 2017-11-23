@@ -8,15 +8,17 @@ open class Observable<T>(private var value: T? = null) : java.util.Observable() 
 
     open fun set(t: T?) {
         this.value = t
-        setChanged()
-        notifyObservers(t)
+        notifyChanged()
     }
 
-    open fun get(): T? {
-        return value
-    }
+    open fun get(): T? = value
 
     fun addObserver(observer: (t: T) -> Unit) {
-        addObserver { o, arg -> observer(arg as T) }
+        addObserver { _, arg -> observer(arg as T) }
+    }
+
+    fun notifyChanged() {
+        setChanged()
+        notifyObservers(value)
     }
 }

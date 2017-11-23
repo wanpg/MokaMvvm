@@ -11,7 +11,7 @@ import kotlin.reflect.jvm.isAccessible
  */
 
 open abstract class ViewBinder {
-    
+
     abstract fun initView(container: View)
 
     abstract fun dataBind()
@@ -44,6 +44,7 @@ open abstract class ViewBinder {
                 call.addObserver {
                     callBack(it as T)
                 }
+                callBack(call.get() as T)
             } else {
                 callBack(call as T)
             }
