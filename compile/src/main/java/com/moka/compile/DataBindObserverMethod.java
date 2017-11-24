@@ -2,7 +2,11 @@ package com.moka.compile;
 
 import com.moka.annotations.Binder;
 import com.moka.annotations.Binders;
+import com.moka.annotations.Command;
+import com.moka.annotations.Commands;
 import com.moka.annotations.Mvvm;
+import com.moka.annotations.ObserveBy;
+import com.moka.mvvm.ViewProperty;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -23,6 +27,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 
 import static com.moka.compile.MvvmProcessor.classObservable;
+import static com.moka.compile.MvvmProcessor.classView;
 import static com.moka.compile.ReflectUtils.getReturnType;
 
 /**
@@ -33,13 +38,13 @@ import static com.moka.compile.ReflectUtils.getReturnType;
  * 3、 绑定ViewController中的field 执行command 调用protocol方法
  */
 
-public class DataBindMethod extends BaseMethod {
+public class DataBindObserverMethod extends BaseMethod {
     TypeElement viewProtocolElement = null;
     TypeElement viewModelElement = null;
     List<Element> allStaticField = new ArrayList<>();
     List<Element> allMethod = new ArrayList<>();
 
-    public DataBindMethod(ProcessingEnvironment processingEnv, TypeElement typeElement) {
+    public DataBindObserverMethod(ProcessingEnvironment processingEnv, TypeElement typeElement) {
         super(processingEnv, typeElement);
         Mvvm mvvmAnnotation = typeElement.getAnnotation(Mvvm.class);
 
@@ -74,9 +79,40 @@ public class DataBindMethod extends BaseMethod {
 
     @Override
     public MethodSpec build() {
-        MethodSpec.Builder dataBindBuilder = MethodSpec.methodBuilder("dataBind")
+        MethodSpec.Builder dataBindBuilder = MethodSpec.methodBuilder("dataBindObserver")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC);
+
+        // 先处理ViewModel的绑定
+        List<Element> allFieldWithObserveBy = ReflectUtils.getAllFieldWithAnnotation(processingEnv, viewModelElement, ObserveBy.class);
+        for (Element elementObserveBy : allFieldWithObserveBy) {
+            TypeName typeName = ClassName.get(elementObserveBy.asType());
+            if (typeName instanceof ParameterizedTypeName) {
+                List<TypeName> typeArguments = ((ParameterizedTypeName) typeName).typeArguments;
+                typeName = typeArguments.get(0);
+            }
+            ObserveBy observeBy = elementObserveBy.getAnnotation(ObserveBy.class);
+            String[] value = observeBy.value();
+
+            String fieldName = elementObserveBy.getSimpleName().toString();
+            String methodName = elementObserveBy.getModifiers().contains(Modifier.PUBLIC) ? fieldName : "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1) + "()";
+            dataBindBuilder
+                    .addCode("viewModel.$N.addObserver(new $T<$T, $T>() {\n", methodName, MvvmProcessor.classKFunction1, typeName, MvvmProcessor.classKUnit)
+                    .addCode("    @Override\n")
+                    .addCode("    public $T invoke($T data) {\n", MvvmProcessor.classKUnit, typeName);
+            for (String methodString : value) {
+                for (Element element : allMethod) {
+                    String simpleName = element.getSimpleName().toString();
+                    System.out.println("输出的element是" + simpleName);
+                    if (simpleName.equals(methodString)) {
+                        dataBindBuilder.addCode("        viewModel.$N();\n", simpleName);
+                    }
+                }
+            }
+            dataBindBuilder.addCode("        return null;\n")
+                    .addCode("    }\n")
+                    .addCode("});\n");
+        }
 
         // 此处处理ViewController Bind
         List<Element> allFieldWithBinder = new ArrayList<>();
@@ -133,17 +169,66 @@ public class DataBindMethod extends BaseMethod {
                             List<TypeName> typeArguments = ((ParameterizedTypeName) typeName).typeArguments;
                             typeNameT = typeArguments.get(0);
                         }
-                        dataBindBuilder.addCode("$T $N = viewModel.$N().get();\n", typeNameT, simpleName, simpleName);
-                    } else {
+                        dataBindBuilder
+                                .addCode("viewModel.$N().addObserver(new $T<$T, $T>() {\n", simpleName, MvvmProcessor.classKFunction1, typeNameT, MvvmProcessor.classKUnit)
+                                .addCode("    @Override\n")
+                                .addCode("    public $T invoke($T data) {\n", MvvmProcessor.classKUnit, typeNameT);
+//                                .addCode("        viewController.button1.setEnabled(aBoolean);\n")
+
+                        for (String methodInvoke : binderMethod) {
+                            dataBindBuilder.addCode("        viewController." + String.format(methodInvoke, "data"));
+                        }
+
+                        dataBindBuilder.addCode("        return null;\n")
+                                .addCode("    }\n")
+                                .addCode("});\n");
+                    } /*else {
                         dataBindBuilder.addCode("$T $N = viewModel.$N();\n", typeName, simpleName, simpleName);
-                    }
-                    for (String methodInvoke : binderMethod) {
-                        dataBindBuilder.addCode("viewController." + String.format(methodInvoke, simpleName));
-                    }
+                        for (String methodInvoke : binderMethod) {
+                            dataBindBuilder.addCode("viewController." + String.format(methodInvoke, simpleName));
+                        }
+                    }*/
                 }
             }
         }
 
+        // 此处处理ViewController 的 Command的调用
+        bindCommand(dataBindBuilder);
+
         return dataBindBuilder.build();
+    }
+
+    private void bindCommand(MethodSpec.Builder builder) {
+        List<Element> commandElements = ReflectUtils.getAllFieldWithAnnotation(processingEnv, typeElement, Command.class);
+        for (Element element : commandElements) {
+            Command command = element.getAnnotation(Command.class);
+            createOneCommandCode(builder, command, element);
+        }
+        List<Element> commandsElements = ReflectUtils.getAllFieldWithAnnotation(processingEnv, typeElement, Commands.class);
+        for (Element element : commandsElements) {
+            Commands commands = element.getAnnotation(Commands.class);
+            if (commands != null) {
+                Command[] value = commands.value();
+                for (Command command : value) {
+                    createOneCommandCode(builder, command, element);
+                }
+            }
+        }
+    }
+
+    private void createOneCommandCode(MethodSpec.Builder builder, Command command, Element element) {
+        if (command == null) {
+            return;
+        }
+        String property = command.property();
+        if (ViewProperty.View.onClick.equals(property)) {
+            String execute = command.execute();
+            builder.addCode("viewController.$N.setOnClickListener(new $T.OnClickListener() {\n", element.getSimpleName(), classView)
+                    .addCode("    @Override\n")
+                    .addCode("    public void onClick($T v) {\n", classView)
+                    .addCode("        executeCommand($S, v);\n", execute)
+                    .addCode("    }\n")
+                    .addCode("});\n");
+        }
     }
 }

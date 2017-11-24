@@ -20,6 +20,7 @@ open class TestViewController(context: Context, container: View) : ViewControlle
 
     @ViewId(R.id.button1)
     @Binders(Binder(property = ViewProperty.Button.text, observe = TestViewProtocol.getButtonText),
+            Binder(property = ViewProperty.Button.text, observe = TestViewProtocol.getButtonText1),
             Binder(property = ViewProperty.Button.enabled, observe = TestViewProtocol.getButtonEnable))
     open lateinit var button1: Button
 

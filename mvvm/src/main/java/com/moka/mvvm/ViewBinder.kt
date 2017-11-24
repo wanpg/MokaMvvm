@@ -12,12 +12,29 @@ import kotlin.reflect.jvm.isAccessible
 
 open abstract class ViewBinder {
 
+    /**
+     * 初始化View
+     */
     abstract fun initView(container: View)
 
+    /**
+     * 数据静态绑定
+     */
     abstract fun dataBind()
 
+    /**
+     * 数据绑定Observer
+     */
+    abstract fun dataBindObserver()
+
+    /**
+     * 设置ViewModel
+     */
     abstract fun setViewModel(viewModel: ViewModel)
 
+    /**
+     * 获取ViewModel
+     */
     abstract fun getViewModel(): ViewModel
 
     open fun executeCommand(command: String, vararg args: Any) {

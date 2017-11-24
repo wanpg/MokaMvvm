@@ -31,6 +31,7 @@ abstract class ViewController : VVMBase {
         viewBinder.initView(container)
         bindView(container)
         viewBinder.dataBind()
+        viewBinder.dataBindObserver()
     }
 
     override fun onDestroy() {

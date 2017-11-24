@@ -136,6 +136,7 @@ public class MvvmProcessor extends AbstractProcessor {
 
         // 6. 创建 dataBind 方法
         viewBinderTypeBuilder.addMethod(new DataBindMethod(processingEnv, element).build());
+        viewBinderTypeBuilder.addMethod(new DataBindObserverMethod(processingEnv, element).build());
 
         // 7. 创建 executeCommand 方法
         viewBinderTypeBuilder.addMethod(new ExecuteCommandMethod(processingEnv, element).build());

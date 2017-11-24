@@ -15,6 +15,9 @@ import com.moka.mvvm.ViewModel
  */
 
 class TestViewModel(context: Context) : ViewModel(context), TestViewProtocol {
+    override fun getButtonText1(): String {
+        return if (buttonInfo.get() == null) buttonInfo.get()!!.text else ""
+    }
 
     private val handler = Handler()
 
